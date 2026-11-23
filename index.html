@@ -1,0 +1,1145 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Энергомарафон — СШ №5 г. Светлогорска</title>
+<style>
+  :root {
+    --primary: #1b6ca8;
+    --primary-dark: #134e7a;
+    --accent: #2ecc71;
+    --accent-dark: #27ae60;
+    --danger: #e74c3c;
+    --warning: #f39c12;
+    --bg: #f0f4f8;
+    --card: #ffffff;
+    --text: #2c3e50;
+  }
+  * { box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+  body { margin: 0; padding: 15px; background: var(--bg); color: var(--text); }
+  #em-game-wrapper {
+    max-width: 940px;
+    margin: 0 auto;
+    background: var(--card);
+    border-radius: 16px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+    overflow: hidden;
+    border: 2px solid #d9e2ec;
+  }
+  .em-header {
+    background: linear-gradient(135deg, #1b6ca8, #2ecc71);
+    color: white;
+    padding: 16px 24px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+  .em-header h1 { margin: 0; font-size: 20px; }
+  .em-stats {
+    display: flex;
+    gap: 15px;
+    font-weight: bold;
+    background: rgba(0,0,0,0.2);
+    padding: 8px 14px;
+    border-radius: 20px;
+    font-size: 15px;
+  }
+  .em-screen { display: none; padding: 24px; }
+  .em-screen.active { display: block; animation: fadeIn 0.3s ease; }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+
+  .em-btn {
+    background: var(--primary);
+    color: white;
+    border: none;
+    padding: 12px 22px;
+    border-radius: 10px;
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: 0.2s;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .em-btn:hover { background: var(--primary-dark); transform: translateY(-1px); }
+  .em-btn-green { background: var(--accent-dark); }
+  .em-btn-green:hover { background: #219150; }
+  .em-btn-outline { background: transparent; border: 2px solid var(--primary); color: var(--primary); }
+  .em-btn-outline:hover { background: var(--primary); color: white; }
+
+  .em-input-group { margin: 20px 0; max-width: 400px; }
+  .em-input-group input {
+    width: 100%;
+    padding: 12px 15px;
+    font-size: 16px;
+    border: 2px solid #bcccdc;
+    border-radius: 10px;
+    outline: none;
+  }
+  .em-input-group input:focus { border-color: var(--primary); }
+
+  .em-locations-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 16px;
+    margin-top: 20px;
+  }
+  .em-loc-card {
+    background: #f8fafc;
+    border: 2px solid #d9e2ec;
+    border-radius: 14px;
+    padding: 18px;
+    text-align: center;
+    cursor: pointer;
+    transition: 0.2s;
+    position: relative;
+  }
+  .em-loc-card:hover { border-color: var(--primary); transform: translateY(-3px); box-shadow: 0 6px 15px rgba(0,0,0,0.06); }
+  .em-loc-card.completed { border-color: var(--accent); background: #eafaf1; }
+  .em-loc-icon { font-size: 46px; margin-bottom: 10px; }
+  .em-loc-title { font-size: 18px; font-weight: bold; margin-bottom: 6px; }
+  .em-loc-progress { font-size: 13px; color: #627d98; font-weight: 600; }
+
+  .em-scene-box {
+    background: #eef2f6;
+    border-radius: 14px;
+    padding: 15px;
+    margin: 15px 0;
+    border: 2px solid #cbd5e1;
+    text-align: center;
+  }
+  .em-items-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: 15px;
+    margin-top: 15px;
+  }
+  .em-item-btn {
+    background: white;
+    border: 2px solid #cbd5e1;
+    border-radius: 12px;
+    padding: 20px 10px;
+    cursor: pointer;
+    transition: 0.2s;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+  }
+  .em-item-btn:hover:not(:disabled) { border-color: var(--warning); transform: scale(1.03); background: #fffdf5; }
+  .em-item-btn.done { border-color: var(--accent); background: #eafaf1; cursor: default; opacity: 0.85; }
+  .em-item-emoji { font-size: 48px; }
+  .em-item-name { font-weight: bold; font-size: 15px; }
+
+  .em-svg-classroom { width: 100%; max-width: 760px; height: auto; border-radius: 10px; background: #fff; box-shadow: 0 2px 10px rgba(0,0,0,0.08); }
+  .hotspot { cursor: pointer; transition: 0.2s; }
+  .hotspot:hover { opacity: 0.8; filter: drop-shadow(0 0 6px #f39c12); }
+  .hotspot.found { opacity: 0.35; cursor: default; }
+
+  .em-quiz-box { background: #f8fafc; border-radius: 12px; padding: 20px; border: 1px solid #d9e2ec; }
+
+  /* Эко-квест (сортировка тезисов) */
+  .eco-pool {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    justify-content: center;
+    min-height: 70px;
+    padding: 14px;
+    background: #f8fafc;
+    border: 2px dashed #9fb3c8;
+    border-radius: 12px;
+    margin-bottom: 20px;
+  }
+  .eco-card {
+    background: #ffffff;
+    border: 2px solid var(--primary);
+    border-radius: 10px;
+    padding: 10px 14px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: grab;
+    box-shadow: 0 3px 8px rgba(0,0,0,0.06);
+    transition: 0.15s;
+    user-select: none;
+    max-width: 280px;
+    text-align: left;
+  }
+  .eco-card:hover { transform: translateY(-2px); box-shadow: 0 5px 12px rgba(0,0,0,0.12); }
+  .eco-card.selected { background: #dbeafe; border-color: #1d4ed8; box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.4); }
+  .eco-zones {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+  }
+  @media (max-width: 650px) {
+    .eco-zones { grid-template-columns: 1fr; }
+  }
+  .eco-zone {
+    border-radius: 14px;
+    padding: 16px;
+    min-height: 210px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    transition: 0.2s;
+  }
+  .eco-zone-good {
+    background: #eafaf1;
+    border: 3px dashed #27ae60;
+  }
+  .eco-zone-good.drag-over { background: #d4efdf; transform: scale(1.01); }
+  .eco-zone-bad {
+    background: #fdedec;
+    border: 3px dashed #e74c3c;
+  }
+  .eco-zone-bad.drag-over { background: #fadbd8; transform: scale(1.01); }
+  .eco-zone-title {
+    font-size: 17px;
+    font-weight: bold;
+    text-align: center;
+    padding-bottom: 8px;
+    border-bottom: 1px solid rgba(0,0,0,0.1);
+  }
+  .eco-placed-item {
+    padding: 9px 12px;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 600;
+    background: white;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+  }
+  .eco-placed-good { border-left: 5px solid #27ae60; color: #145a32; }
+  .eco-placed-bad { border-left: 5px solid #e74c3c; color: #78281f; }
+
+  .em-modal-overlay {
+    display: none;
+    position: fixed;
+    top: 0; left: 0; width: 100%; height: 100%;
+    background: rgba(15, 23, 42, 0.65);
+    z-index: 9999;
+    align-items: center;
+    justify-content: center;
+    padding: 15px;
+  }
+  .em-modal-overlay.active { display: flex; }
+  .em-modal {
+    background: white;
+    max-width: 560px;
+    width: 100%;
+    border-radius: 16px;
+    padding: 24px;
+    box-shadow: 0 20px 40px rgba(0,0,0,0.25);
+    animation: fadeIn 0.2s ease;
+  }
+  .em-modal h3 { margin-top: 0; color: var(--primary-dark); font-size: 19px; }
+  .em-options { display: flex; flex-direction: column; gap: 10px; margin: 18px 0; }
+  .em-opt-btn {
+    text-align: left;
+    padding: 12px 16px;
+    border: 2px solid #d9e2ec;
+    background: #f8fafc;
+    border-radius: 10px;
+    font-size: 15px;
+    cursor: pointer;
+    transition: 0.15s;
+  }
+  .em-opt-btn:hover:not(:disabled) { border-color: var(--primary); background: #eff6ff; }
+  .em-opt-btn.correct { background: #d4edda; border-color: #28a745; color: #155724; font-weight: bold; }
+  .em-opt-btn.wrong { background: #f8d7da; border-color: #dc3545; color: #721c24; }
+  .em-feedback { padding: 12px; border-radius: 8px; margin-bottom: 15px; font-size: 14px; display: none; }
+  .em-feedback.show { display: block; }
+  .em-feedback.good { background: #eafaf1; color: #1e8449; border: 1px solid #a9dfbf; }
+  .em-feedback.bad { background: #fdedec; color: #922b21; border: 1px solid #f5b7b1; }
+
+  .em-cert {
+    border: 8px double #1b6ca8;
+    border-radius: 12px;
+    padding: 30px 20px;
+    text-align: center;
+    background: radial-gradient(circle at top left, #ffffff, #f0f7ff);
+    position: relative;
+    margin-bottom: 20px;
+  }
+  .em-cert-school { font-size: 14px; font-weight: bold; color: #486581; text-transform: uppercase; letter-spacing: 1px; }
+  .em-cert-contest { font-size: 16px; color: #27ae60; font-weight: bold; margin: 5px 0 15px; }
+  .em-cert-title { font-size: 34px; font-weight: 900; color: #1b6ca8; letter-spacing: 3px; margin: 10px 0; }
+  .em-cert-name { font-size: 26px; font-weight: bold; color: #102a43; border-bottom: 2px solid #1b6ca8; display: inline-block; padding: 0 25px 4px; margin: 10px 0; }
+  .em-cert-score { font-size: 20px; font-weight: bold; color: #d97706; margin: 15px 0; }
+  .em-cert-footer { display: flex; justify-content: space-between; margin-top: 25px; font-size: 13px; color: #627d98; padding: 0 15px; }
+
+  @media print {
+    body * { visibility: hidden; }
+    #em-cert-area, #em-cert-area * { visibility: visible; }
+    #em-cert-area { position: fixed; left: 0; top: 0; width: 100%; }
+  }
+</style>
+</head>
+<body>
+
+<div id="em-game-wrapper">
+  <!-- Шапка -->
+  <div class="em-header">
+    <h1>⚡ ЭНЕРГОМАРАФОН — СШ №5 г. Светлогорска</h1>
+    <div class="em-stats">
+      <span>👤 <span id="ui-player-name">ГОСТЬ</span></span>
+      <span>🏆 Баллы: <span id="ui-score">0</span></span>
+    </div>
+  </div>
+
+  <!-- Экран 1: Приветствие -->
+  <div id="screen-welcome" class="em-screen active">
+    <h2>Добро пожаловать в игру по энергосбережению!</h2>
+    <p>Пройди 6 локаций — от собственной квартиры до родной школы №5, сортировки эко-привычек и энергосистемы Беларуси. Находи утечки энергии, принимай умные решения и зарабатывай баллы!</p>
+    <div style="background:#f8fafc; padding:14px; border-radius:10px; border-left:4px solid #2ecc71; margin:15px 0;">
+      <strong>Правила начисления:</strong><br>
+      ✅ Верный ответ / правильная сортировка: <strong>+10 баллов</strong><br>
+      ❌ Ошибка / промах: <strong>-5 баллов</strong>
+    </div>
+    <div class="em-input-group">
+      <label for="input-name" style="display:block; margin-bottom:6px; font-weight:bold;">Введи своё имя и класс:</label>
+      <input type="text" id="input-name" value="ГОСТЬ" placeholder="Например: Иван Иванов, 7 «А»">
+    </div>
+    <button class="em-btn em-btn-green" onclick="startGame()">Начать Энергомарафон 🚀</button>
+  </div>
+
+  <!-- Экран 2: Карта локаций -->
+  <div id="screen-map" class="em-screen">
+    <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
+      <div>
+        <h2 style="margin:0;">Выбери локацию для проверки</h2>
+        <p style="margin:5px 0 0; color:#627d98;">Исследуй все 6 локаций, чтобы получить именной сертификат участника.</p>
+      </div>
+      <button id="btn-finish" class="em-btn em-btn-green" onclick="showCertificate()">🎉 Завершить игру и получить сертификат</button>
+    </div>
+    <div class="em-locations-grid" id="locations-container"></div>
+  </div>
+
+  <!-- Экран 3: Локации 1, 2, 3 (Бытовые приборы) -->
+  <div id="screen-room" class="em-screen">
+    <button class="em-btn em-btn-outline" onclick="goToMap()">⬅ К списку локаций</button>
+    <h2 id="room-title" style="margin-top:15px;">Локация</h2>
+    <p id="room-desc">Нажимай на приборы, чтобы проверить, как экономить энергию.</p>
+    <div class="em-scene-box">
+      <div class="em-items-grid" id="room-items"></div>
+    </div>
+  </div>
+
+  <!-- Экран 4: Локация 4 (Школьный класс СШ №5) -->
+  <div id="screen-classroom" class="em-screen">
+    <button class="em-btn em-btn-outline" onclick="goToMap()">⬅ К списку локаций</button>
+    <h2 style="margin-top:15px;">🏫 Локация 4: Кабинет в СШ №5 г. Светлогорска</h2>
+    <p>Началась большая перемена! Найди на картинке <strong>5 «энерговампиров»</strong> (утечек энергии и воды) и кликни по ним. Найдено: <strong id="class-found-count">0</strong> из 5.</p>
+    
+    <div class="em-scene-box">
+      <svg class="em-svg-classroom" viewBox="0 0 800 420" xmlns="http://www.w3.org/2000/svg">
+        <rect width="800" height="330" fill="#fef9e7"/>
+        <rect y="330" width="800" height="90" fill="#d5dbdb"/>
+        
+        <g id="spot-light" class="hotspot" onclick="clickClassroomSpot('light')">
+          <rect x="260" y="10" width="120" height="14" rx="4" fill="#f1c40f" stroke="#d4ac0d" stroke-width="2"/>
+          <polygon points="260,24 380,24 410,90 230,90" fill="rgba(241, 196, 15, 0.25)"/>
+          <text x="320" y="45" font-size="12" text-anchor="middle" fill="#b7950b" font-weight="bold">💡 Свет горит днём</text>
+        </g>
+
+        <rect x="40" y="45" width="150" height="170" fill="#85c1e9" stroke="#5d6d7e" stroke-width="6"/>
+        <circle cx="80" cy="85" r="22" fill="#f4d03f"/>
+        <g id="spot-window" class="hotspot" onclick="clickClassroomSpot('window')">
+          <rect x="125" y="48" width="62" height="55" fill="#d6eaf8" stroke="#2874a6" stroke-width="3"/>
+          <path d="M135,75 Q165,65 180,85" stroke="#3498db" stroke-width="3" fill="none"/>
+          <path d="M135,88 Q165,78 180,98" stroke="#3498db" stroke-width="3" fill="none"/>
+          <text x="115" y="38" font-size="12" text-anchor="middle" fill="#1f618d" font-weight="bold">🪟 Открытая форточка</text>
+        </g>
+
+        <rect x="55" y="245" width="120" height="45" rx="5" fill="#e74c3c"/>
+        <text x="115" y="272" font-size="13" text-anchor="middle" fill="white" font-weight="bold">🔥 Батарея +25°C</text>
+
+        <rect x="230" y="95" width="320" height="150" rx="6" fill="#1e8449" stroke="#784212" stroke-width="8"/>
+        <text x="390" y="135" font-size="18" text-anchor="middle" fill="white" font-weight="bold">СШ №5 г. Светлогорска</text>
+        <text x="390" y="165" font-size="14" text-anchor="middle" fill="#d4efdf">Классная работа: Энергосбережение</text>
+
+        <g id="spot-projector" class="hotspot" onclick="clickClassroomSpot('projector')">
+          <rect x="365" y="15" width="50" height="24" rx="4" fill="#34495e"/>
+          <circle cx="390" cy="27" r="7" fill="#3498db"/>
+          <polygon points="385,39 395,39 430,80 350,80" fill="rgba(52, 152, 219, 0.25)"/>
+          <text x="480" y="32" font-size="12" fill="#2874a6" font-weight="bold">📽 Проектор работает</text>
+        </g>
+
+        <g id="spot-tap" class="hotspot" onclick="clickClassroomSpot('tap')">
+          <rect x="580" y="220" width="75" height="90" fill="#ecf0f1" stroke="#95a5a6" stroke-width="3"/>
+          <path d="M617,220 L617,195 L635,195" stroke="#7f8c8d" stroke-width="6" fill="none"/>
+          <circle cx="635" cy="208" r="4" fill="#3498db"/>
+          <circle cx="635" cy="218" r="3" fill="#3498db"/>
+          <text x="618" y="185" font-size="12" text-anchor="middle" fill="#2980b9" font-weight="bold">🚰 Капает вода</text>
+        </g>
+
+        <g id="spot-pc" class="hotspot" onclick="clickClassroomSpot('pc')">
+          <rect x="650" y="245" width="120" height="85" fill="#ba4a00"/>
+          <rect x="670" y="185" width="70" height="50" rx="3" fill="#2c3e50"/>
+          <rect x="675" y="190" width="60" height="40" fill="#1b4f72"/>
+          <rect x="745" y="265" width="22" height="55" fill="#34495e"/>
+          <circle cx="756" cy="278" r="4" fill="#f39c12"/>
+          <text x="710" y="175" font-size="12" text-anchor="middle" fill="#d35400" font-weight="bold">💻 ПК в режиме сна</text>
+        </g>
+      </svg>
+    </div>
+  </div>
+
+  <!-- Экран 5: Локация 5 (Беларусь и БелАЭС) -->
+  <div id="screen-belarus" class="em-screen">
+    <button class="em-btn em-btn-outline" onclick="goToMap()">⬅ К списку локаций</button>
+    <h2 style="margin-top:15px;">🇧🇾 Локация 5: Белорусская энергосистема и БелАЭС</h2>
+    <p>Ответь на вопросы об энергетике, атомной энергии и экологии Республики Беларусь.</p>
+    <div id="belarus-quiz-container" class="em-quiz-box"></div>
+  </div>
+
+  <!-- Экран 6: Локация 6 (Эко-квест: перетаскивание) -->
+  <div id="screen-ecoquest" class="em-screen">
+    <button class="em-btn em-btn-outline" onclick="goToMap()">⬅ К списку локаций</button>
+    <h2 style="margin-top:15px;">♻️ Локация 6: Эко-квест «Сортировка привычек»</h2>
+    <p>Перетащи каждую карточку с тезисом в подходящий раздел: <strong>«Энергоэффективно»</strong> или <strong>«Энергозатратно»</strong>.<br>
+    <span style="font-size:13px; color:#627d98;">💡 Подсказка для телефона/планшета: нажми на карточку, а затем на нужный раздел.</span></p>
+
+    <div id="eco-feedback" class="em-feedback"></div>
+
+    <div id="eco-pool" class="eco-pool"></div>
+
+    <div class="eco-zones">
+      <div id="zone-good" class="eco-zone eco-zone-good"
+           ondragover="allowDrop(event)"
+           ondragleave="leaveDrop(event)"
+           ondrop="handleDrop(event, 'good')"
+           onclick="handleZoneClick('good')">
+        <div class="eco-zone-title" style="color:#1e8449;">🌿 Энергоэффективно (Бережём ресурсы)</div>
+      </div>
+
+      <div id="zone-bad" class="eco-zone eco-zone-bad"
+           ondragover="allowDrop(event)"
+           ondragleave="leaveDrop(event)"
+           ondrop="handleDrop(event, 'bad')"
+           onclick="handleZoneClick('bad')">
+        <div class="eco-zone-title" style="color:#922b21;">🔥 Энергозатратно (Тратим впустую)</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Экран 7: Сертификат -->
+  <div id="screen-cert" class="em-screen">
+    <div id="em-cert-area">
+      <div class="em-cert">
+        <div class="em-cert-school">ГУО «Средняя школа №5 г. Светлогорска»</div>
+        <div class="em-cert-contest">Республиканский конкурс «Энергомарафон»</div>
+        <div class="em-cert-title">СЕРТИФИКАТ</div>
+        <p style="font-size:16px; margin:5px 0;">награждается</p>
+        <div class="em-cert-name" id="cert-player-name">ГОСТЬ</div>
+        <p style="max-width:520px; margin:15px auto; line-height:1.5;">
+          за успешное прохождение интерактивного квеста по энергосбережению и бережному отношению к ресурсам!
+        </p>
+        <div class="em-cert-score">Итоговый результат: <span id="cert-score">0</span> баллов</div>
+        <div id="cert-rank" style="font-weight:bold; color:#27ae60;"></div>
+        <div class="em-cert-footer">
+          <span>Дата: <span id="cert-date"></span></span>
+          <span>sv5school.by</span>
+        </div>
+      </div>
+    </div>
+    <div style="text-align:center; display:flex; gap:12px; justify-content:center; flex-wrap:wrap;">
+      <button class="em-btn" onclick="window.print()">🖨 Распечатать / Сохранить в PDF</button>
+      <button class="em-btn em-btn-outline" onclick="resetGame()">🔄 Сыграть ещё раз</button>
+    </div>
+  </div>
+</div>
+
+<!-- Модальное окно вопроса -->
+<div id="modal-overlay" class="em-modal-overlay">
+  <div class="em-modal">
+    <h3 id="modal-question">Вопрос</h3>
+    <div id="modal-options" class="em-options"></div>
+    <div id="modal-feedback" class="em-feedback"></div>
+    <button id="modal-close-btn" class="em-btn" style="display:none; width:100%; justify-content:center;" onclick="closeModal()">Продолжить</button>
+  </div>
+</div>
+
+<script>
+// Состояние игры
+let state = {
+  playerName: 'ГОСТЬ',
+  score: 0,
+  completedItems: {},
+  ecoPlaced: {}, // { 'eco_1': 'good', ... }
+  selectedEcoId: null
+};
+
+// База данных локаций
+const GAME_DATA = {
+  kitchen: {
+    id: 'kitchen',
+    title: '🍳 Локация 1: Кухня',
+    icon: '🍳',
+    desc: 'Нажми на каждый прибор на кухне и выбери самый энергоэффективный способ его использования.',
+    items: [
+      {
+        id: 'kitchen_kettle',
+        name: 'Электрочайник',
+        emoji: '🫖',
+        question: 'В электрочайнике образовалась накипь, и в него налили 2 литра воды, чтобы сделать одну кружку чая. Как поступить правильно?',
+        options: [
+          { text: 'Очистить чайник от накипи и налить воду ровно на одну кружку', correct: true },
+          { text: 'Просто вскипятить все 2 литра воды как есть', correct: false },
+          { text: 'Вылить всю воду и прокипятить пустой чайник', correct: false }
+        ],
+        explanation: 'Накипь ухудшает теплопроводность, а кипячение лишней воды тратит впустую до 70% электроэнергии!'
+      },
+      {
+        id: 'kitchen_fridge',
+        name: 'Холодильник',
+        emoji: '🧊',
+        question: 'Куда лучше всего поставить холодильник на кухне, чтобы он потреблял меньше электричества?',
+        options: [
+          { text: 'В прохладное место подальше от плиты и батареи, оставив зазор от стены', correct: true },
+          { text: 'Вплотную к газовой плите для экономии места', correct: false },
+          { text: 'На солнечную сторону прямо к батарее отопления', correct: false }
+        ],
+        explanation: 'Если холодильник стоит рядом с источником тепла, компрессору приходится работать почти без остановки.'
+      },
+      {
+        id: 'kitchen_pot',
+        name: 'Кастрюля на плите',
+        emoji: '🍲',
+        question: 'Как быстрее и экономичнее сварить картофель или суп на электроплите?',
+        options: [
+          { text: 'Накрыть кастрюлю крышкой и подобрать конфорку по размеру дна', correct: true },
+          { text: 'Варить без крышки на самой большой конфорке', correct: false },
+          { text: 'Поставить маленькую кастрюлю на огромную конфорку без крышки', correct: false }
+        ],
+        explanation: 'Приготовление пищи без крышки увеличивает расход энергии в 2–3 раза!'
+      }
+    ]
+  },
+  living: {
+    id: 'living',
+    title: '🛋 Локация 2: Гостиная',
+    icon: '🛋',
+    desc: 'Проверь приборы и окна в гостиной, чтобы устранить лишние траты тепла и света.',
+    items: [
+      {
+        id: 'living_window',
+        name: 'Окно',
+        emoji: '🪟',
+        question: 'Зимой в комнате стало душно. Как правильно проветрить гостиную, чтобы не выстудить стены?',
+        options: [
+          { text: 'Открыть окно широко на 5–10 минут (ударное проветривание)', correct: true },
+          { text: 'Держать форточку приоткрытой весь день', correct: false },
+          { text: 'Включить кондиционер на обогрев при открытом окне', correct: false }
+        ],
+        explanation: 'Быстрое сквозное проветривание обновляет воздух, но не успевает охладить стены и мебель.'
+      },
+      {
+        id: 'living_lamp',
+        name: 'Освещение',
+        emoji: '💡',
+        question: 'Какую лампочку выгоднее всего вкрутить в люстру в гостиной?',
+        options: [
+          { text: 'Светодиодную (LED) лампу', correct: true },
+          { text: 'Обычную лампу накаливания на 100 Вт', correct: false },
+          { text: 'Галогенную лампу старого образца', correct: false }
+        ],
+        explanation: 'LED-лампы потребляют в 8–10 раз меньше электроэнергии, чем лампы накаливания, и служат годами.'
+      },
+      {
+        id: 'living_tv',
+        name: 'Телевизор',
+        emoji: '📺',
+        question: 'Ты уходишь из гостиной на пару часов. Как поступить с телевизором?',
+        options: [
+          { text: 'Выключить телевизор, чтобы он не работал фоном в пустой комнате', correct: true },
+          { text: 'Оставить включённым, чтобы в квартире было веселее', correct: false },
+          { text: 'Убавить громкость до нуля, но оставить экран включённым', correct: false }
+        ],
+        explanation: 'Фоновый просмотр телевизора «впустую» съедает десятки киловатт-часов в год.'
+      },
+      {
+        id: 'living_socket',
+        name: 'Розетка с зарядкой',
+        emoji: '🔌',
+        question: 'Телефон уже зарядился на 100%. Нужно ли вынимать зарядное устройство из розетки?',
+        options: [
+          { text: 'Да, зарядное устройство в розетке продолжает потреблять ток в режиме ожидания', correct: true },
+          { text: 'Нет, без телефона оно вообще не тратит электричество', correct: false },
+          { text: 'Вынимать нужно только раз в год', correct: false }
+        ],
+        explanation: 'Приборы в режиме «спячки» и пустые зарядки забирают до 10% домашнего электричества.'
+      }
+    ]
+  },
+  bathroom: {
+    id: 'bathroom',
+    title: '🚿 Локация 3: Ванная',
+    icon: '🚿',
+    desc: 'Вода и её нагрев требуют огромного количества энергии. Проверь сантехнику и технику!',
+    items: [
+      {
+        id: 'bath_tap',
+        name: 'Смеситель (кран)',
+        emoji: '🚰',
+        question: 'Сколько воды утекает в канализацию за 3 минуты, пока ты чистишь зубы с открытым краном?',
+        options: [
+          { text: 'Около 20–30 литров чистой воды', correct: true },
+          { text: 'Всего полстакана (100 мл)', correct: false },
+          { text: 'Около 1 литра', correct: false }
+        ],
+        explanation: 'Закрывая кран во время чистки зубов, один человек экономит до 600 литров воды в месяц!'
+      },
+      {
+        id: 'bath_washer',
+        name: 'Стиральная машина',
+        emoji: '🧺',
+        question: 'Какой режим стирки помогает сэкономить до 40% электроэнергии при слабом загрязнении вещей?',
+        options: [
+          { text: 'Стирка при температуре 30–40 °C с полной загрузкой барабана', correct: true },
+          { text: 'Стирка при 90 °C для двух носков', correct: false },
+          { text: 'Двойное кипячение после каждой прогулки', correct: false }
+        ],
+        explanation: 'Основную энергию стиральная машина тратит именно на нагрев воды ТЭНом.'
+      },
+      {
+        id: 'bath_boiler',
+        name: 'Водонагреватель (бойлер)',
+        emoji: '🌡️',
+        question: 'Какую температуру оптимально выставить на водонагревателе для комфорта и экономии?',
+        options: [
+          { text: '55–60 °C (режим ЭКО)', correct: true },
+          { text: 'Максимальные 85–90 °C постоянно', correct: false },
+          { text: '15 °C', correct: false }
+        ],
+        explanation: 'При 55–60 °C меньше образуется накипь на нагревателе и снижаются теплопотери через корпус.'
+      }
+    ]
+  },
+  classroom: {
+    id: 'classroom',
+    title: '🏫 Локация 4: Школьный класс (СШ №5)',
+    icon: '🏫',
+    desc: 'Найди 5 утечек энергии в кабинете родной школы во время перемены.',
+    spots: {
+      light: {
+        id: 'class_light',
+        question: 'За окном яркий солнечный день, в классе светло, но лампа под потолком горит. Что делаем?',
+        options: [
+          { text: 'Выключаем верхний свет — естественного освещения достаточно', correct: true },
+          { text: 'Включаем ещё и настольные лампы', correct: false },
+          { text: 'Закрываем шторы и оставляем свет гореть', correct: false }
+        ],
+        explanation: 'Использование дневного света — самый простой способ экономии электричества в школе.'
+      },
+      window: {
+        id: 'class_window',
+        question: 'Батареи в классе горячие, а форточка открыта настежь всю перемену и урок. Чем это плохо?',
+        options: [
+          { text: 'Мы отапливаем улицу — теряется до 30% тепловой энергии', correct: true },
+          { text: 'Ничем, батареи сами отключатся', correct: false },
+          { text: 'Так тепло быстрее распространяется по школе', correct: false }
+        ],
+        explanation: 'Проветривать кабинет нужно быстро на перемене, закрыв окно перед началом урока.'
+      },
+      projector: {
+        id: 'class_projector',
+        question: 'Урок закончился, презентация больше не нужна, но проектор продолжает светить в пустую доску. Твои действия?',
+        options: [
+          { text: 'Выключить проектор с пульта — так сбережём и электричество, и ресурс лампы', correct: true },
+          { text: 'Пусть работает до конца учебного дня', correct: false },
+          { text: 'Просто выдернуть шнур из розетки во время работы', correct: false }
+        ],
+        explanation: 'Лампа проектора потребляет много энергии и сильно греется. Выключать её нужно кнопкой с пульта!'
+      },
+      tap: {
+        id: 'class_tap',
+        question: 'Из крана у доски медленно капает вода (1 капля в секунду). Сколько воды утечёт за сутки?',
+        options: [
+          { text: 'Около 24 литров (почти 3 ведра воды)', correct: true },
+          { text: 'Меньше одной ложки', correct: false },
+          { text: 'Нисколько, капли испаряются в воздухе', correct: false }
+        ],
+        explanation: 'Неисправный кран за месяц может «накапать» более 700 литров чистой питьевой воды!'
+      },
+      pc: {
+        id: 'class_pc',
+        question: 'Компьютер учителя не будет использоваться до завтрашнего утра, но его оставили в режиме сна. Как правильнее?',
+        options: [
+          { text: 'Завершить работу компьютера, если он не нужен до следующего дня', correct: true },
+          { text: 'Оставить в режиме сна на все выходные', correct: false },
+          { text: 'Включить на нём тяжёлую игру на всю ночь', correct: false }
+        ],
+        explanation: 'В режиме ожидания компьютер продолжает потреблять энергию круглосуточно.'
+      }
+    }
+  },
+  belarus: {
+    id: 'belarus',
+    title: '🇧🇾 Локация 5: Энергосистема РБ и БелАЭС',
+    icon: '🇧🇾',
+    desc: 'Проверь свои знания об атомной энергетике, БелАЭС и зелёных проектах Республики Беларусь.',
+    questions: [
+      {
+        id: 'by_1',
+        question: 'В каком городе Гродненской области построена и работает Белорусская атомная электростанция (БелАЭС)?',
+        options: [
+          { text: 'В городе Островец', correct: true },
+          { text: 'В городе Светлогорск', correct: false },
+          { text: 'В городе Мозырь', correct: false }
+        ],
+        explanation: 'БелАЭС расположена рядом с городом Островец и обеспечивает около 40% потребностей страны в электроэнергии.'
+      },
+      {
+        id: 'by_2',
+        question: 'Сколько энергоблоков работает на Белорусской АЭС и какова их суммарная электрическая мощность?',
+        options: [
+          { text: '2 энергоблока общей мощностью 2400 МВт (по 1200 МВт каждый)', correct: true },
+          { text: '6 энергоблоков мощностью 500 МВт', correct: false },
+          { text: '1 энергоблок мощностью 100 МВт', correct: false }
+        ],
+        explanation: 'Два современных реактора ВВЭР-1200 поколения «3+» вырабатывают около 18 млрд кВт·ч электроэнергии в год.'
+      },
+      {
+        id: 'by_3',
+        question: 'Какое топливо используется в реакторах Белорусской АЭС для получения тепловой и электрической энергии?',
+        options: [
+          { text: 'Обогащённый уран (ядерное топливо в тепловыделяющих сборках)', correct: true },
+          { text: 'Природный газ и мазут', correct: false },
+          { text: 'Древесные пеллеты и каменный уголь', correct: false }
+        ],
+        explanation: 'Всего одна топливная таблетка урана весом 4,5 грамма выделяет столько же энергии, сколько 400 кг угля или 350 кубометров газа.'
+      },
+      {
+        id: 'by_4',
+        question: 'Как работа БелАЭС помогает защищать атмосферу и климат Беларуси?',
+        options: [
+          { text: 'Атомная станция не сжигает топливо и сокращает выбросы парниковых газов (CO₂) примерно на 7 млн тонн в год', correct: true },
+          { text: 'Она очищает речную воду от пластика', correct: false },
+          { text: 'Она вырабатывает кислород вместо лесов', correct: false }
+        ],
+        explanation: 'Из огромных градирен БелАЭС выходит только чистый водяной пар, а выбросы углекислого газа отсутствуют.'
+      },
+      {
+        id: 'by_5',
+        question: 'Где в Беларуси находится один из крупнейших ветропарков страны?',
+        options: [
+          { text: 'В Новогрудском районе (возле д. Грабники)', correct: true },
+          { text: 'В центре Минска', correct: false },
+          { text: 'В Беловежской пуще', correct: false }
+        ],
+        explanation: 'Новогрудская возвышенность — одно из самых ветреных мест Беларуси, идеально подходящее для ветрогенераторов.'
+      },
+      {
+        id: 'by_6',
+        question: 'Какие местные виды топлива активно используют на мини-ТЭЦ и котельных Беларуси вместо привозного газа?',
+        options: [
+          { text: 'Древесную щепу, пеллеты и торф', correct: true },
+          { text: 'Каменный уголь из Африки', correct: false },
+          { text: 'Только бензин и керосин', correct: false }
+        ],
+        explanation: 'Использование древесной щепы и торфа укрепляет энергетическую безопасность Беларуси.'
+      },
+      {
+        id: 'by_7',
+        question: 'Почему в школах Беларуси (в том числе и в СШ №5) установлены специальные контейнеры для сбора отработанных батареек?',
+        options: [
+          { text: 'Одна батарейка загрязняет тяжёлыми металлами до 20 кв. метров земли, а переработка возвращает ценные ресурсы', correct: true },
+          { text: 'Батарейки переплавляют в школьные мелки', correct: false },
+          { text: 'Их собирают просто для украшения коридоров', correct: false }
+        ],
+        explanation: 'Сдавая батарейки в спецконтейнеры, мы защищаем почву и грунтовые воды от цинка, марганца и кадмия.'
+      }
+    ]
+  },
+  ecoquest: {
+    id: 'ecoquest',
+    title: '♻️ Локация 6: Эко-квест',
+    icon: '♻️',
+    desc: 'Распредели бытовые привычки по категориям: «Энергоэффективно» и «Энергозатратно».',
+    cards: [
+      { id: 'eco_1', text: '💡 Заменить все лампы в доме на светодиодные (LED)', type: 'good' },
+      { id: 'eco_2', text: '❄️ Открывать форточку на весь день при горячих батареях', type: 'bad' },
+      { id: 'eco_3', text: '🍲 Варить суп в кастрюле с закрытой крышкой', type: 'good' },
+      { id: 'eco_4', text: '🔌 Оставлять зарядку телефона в розетке на весь день', type: 'bad' },
+      { id: 'eco_5', text: '🚰 Закрывать кран, пока чистишь зубы щёткой', type: 'good' },
+      { id: 'eco_6', text: '🧊 Поставить холодильник вплотную к горячей плите', type: 'bad' },
+      { id: 'eco_7', text: '🧺 Запускать стиральную машину при полной загрузке на 30–40 °C', type: 'good' },
+      { id: 'eco_8', text: '📺 Оставлять телевизор работать в пустой комнате «для фона»', type: 'bad' }
+    ]
+  }
+};
+
+function shuffleArray(array) {
+  const arr = [...array];
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr;
+}
+
+function showScreen(screenId) {
+  document.querySelectorAll('.em-screen').forEach(s => s.classList.remove('active'));
+  document.getElementById(screenId).classList.add('active');
+}
+
+function updateStats() {
+  document.getElementById('ui-player-name').textContent = state.playerName;
+  document.getElementById('ui-score').textContent = state.score;
+}
+
+function startGame() {
+  const rawName = document.getElementById('input-name').value.trim();
+  state.playerName = rawName ? rawName : 'ГОСТЬ';
+  updateStats();
+  goToMap();
+}
+
+function goToMap() {
+  renderLocationsMap();
+  showScreen('screen-map');
+}
+
+function renderLocationsMap() {
+  const container = document.getElementById('locations-container');
+  container.innerHTML = '';
+
+  const locs = [
+    { key: 'kitchen', total: GAME_DATA.kitchen.items.length, done: GAME_DATA.kitchen.items.filter(i => state.completedItems[i.id]).length },
+    { key: 'living', total: GAME_DATA.living.items.length, done: GAME_DATA.living.items.filter(i => state.completedItems[i.id]).length },
+    { key: 'bathroom', total: GAME_DATA.bathroom.items.length, done: GAME_DATA.bathroom.items.filter(i => state.completedItems[i.id]).length },
+    { key: 'classroom', total: 5, done: Object.values(GAME_DATA.classroom.spots).filter(s => state.completedItems[s.id]).length },
+    { key: 'belarus', total: GAME_DATA.belarus.questions.length, done: GAME_DATA.belarus.questions.filter(q => state.completedItems[q.id]).length },
+    { key: 'ecoquest', total: GAME_DATA.ecoquest.cards.length, done: Object.keys(state.ecoPlaced).length }
+  ];
+
+  locs.forEach(loc => {
+    const data = GAME_DATA[loc.key];
+    const isComplete = loc.done === loc.total;
+    const card = document.createElement('div');
+    card.className = 'em-loc-card' + (isComplete ? ' completed' : '');
+    card.innerHTML = `
+      <div class="em-loc-icon">${data.icon}</div>
+      <div class="em-loc-title">${data.title.replace(/^.+?:\s*/, '')}</div>
+      <div class="em-loc-progress">${isComplete ? '✅ Пройдено!' : `Выполнено: ${loc.done} из ${loc.total}`}</div>
+    `;
+    card.onclick = () => openLocation(loc.key);
+    container.appendChild(card);
+  });
+}
+
+function openLocation(key) {
+  if (key === 'classroom') {
+    updateClassroomUI();
+    showScreen('screen-classroom');
+  } else if (key === 'belarus') {
+    renderBelarusQuiz();
+    showScreen('screen-belarus');
+  } else if (key === 'ecoquest') {
+    renderEcoQuest();
+    showScreen('screen-ecoquest');
+  } else {
+    renderRoom(key);
+    showScreen('screen-room');
+  }
+}
+
+// Отрисовка комнат 1, 2, 3
+function renderRoom(key) {
+  const room = GAME_DATA[key];
+  document.getElementById('room-title').textContent = room.title;
+  document.getElementById('room-desc').textContent = room.desc;
+  const grid = document.getElementById('room-items');
+  grid.innerHTML = '';
+
+  room.items.forEach(item => {
+    const isDone = !!state.completedItems[item.id];
+    const btn = document.createElement('button');
+    btn.className = 'em-item-btn' + (isDone ? ' done' : '');
+    btn.disabled = isDone;
+    btn.innerHTML = `
+      <div class="em-item-emoji">${item.emoji}</div>
+      <div class="em-item-name">${item.name}</div>
+      <div style="font-size:12px; color:${isDone ? '#27ae60' : '#e67e22'}; font-weight:bold;">
+        ${isDone ? '✅ Проверено' : '🔍 Нажми для проверки'}
+      </div>
+    `;
+    btn.onclick = () => {
+      openQuestionModal(item.question, item.options, item.explanation, () => {
+        state.completedItems[item.id] = true;
+        renderRoom(key);
+      });
+    };
+    grid.appendChild(btn);
+  });
+}
+
+// Локация 4: Класс
+function updateClassroomUI() {
+  const spots = GAME_DATA.classroom.spots;
+  let found = 0;
+  Object.keys(spots).forEach(k => {
+    const el = document.getElementById('spot-' + k);
+    if (state.completedItems[spots[k].id]) {
+      el.classList.add('found');
+      found++;
+    } else {
+      el.classList.remove('found');
+    }
+  });
+  document.getElementById('class-found-count').textContent = found;
+}
+
+function clickClassroomSpot(spotKey) {
+  const spot = GAME_DATA.classroom.spots[spotKey];
+  if (state.completedItems[spot.id]) return;
+
+  openQuestionModal(spot.question, spot.options, spot.explanation, () => {
+    state.completedItems[spot.id] = true;
+    updateClassroomUI();
+  });
+}
+
+// Локация 5: Викторина Беларусь
+function renderBelarusQuiz() {
+  const container = document.getElementById('belarus-quiz-container');
+  const questions = GAME_DATA.belarus.questions;
+  const nextQ = questions.find(q => !state.completedItems[q.id]);
+
+  if (!nextQ) {
+    container.innerHTML = `
+      <div style="text-align:center; padding:20px;">
+        <h3>🎉 Все вопросы по энергосистеме Беларуси и БелАЭС пройдены!</h3>
+        <p>Ты отлично разбираешься в энергетике родной страны.</p>
+        <button class="em-btn" onclick="goToMap()">Вернуться к локациям</button>
+      </div>
+    `;
+    return;
+  }
+
+  const qNum = questions.indexOf(nextQ) + 1;
+  const shuffled = shuffleArray(nextQ.options);
+
+  container.innerHTML = `
+    <div style="font-size:13px; color:#627d98; font-weight:bold; margin-bottom:8px;">Вопрос ${qNum} из ${questions.length}</div>
+    <h3 style="margin-top:0;">${nextQ.question}</h3>
+    <div class="em-options" id="by-options"></div>
+    <div id="by-feedback" class="em-feedback"></div>
+    <button id="by-next-btn" class="em-btn" style="display:none;" onclick="renderBelarusQuiz()">Следующий вопрос ➡</button>
+  `;
+
+  const optBox = document.getElementById('by-options');
+  shuffled.forEach(opt => {
+    const btn = document.createElement('button');
+    btn.className = 'em-opt-btn';
+    btn.textContent = opt.text;
+    btn.onclick = () => {
+      document.querySelectorAll('#by-options .em-opt-btn').forEach(b => b.disabled = true);
+      const fb = document.getElementById('by-feedback');
+      if (opt.correct) {
+        btn.classList.add('correct');
+        state.score += 10;
+        fb.className = 'em-feedback show good';
+        fb.innerHTML = `<strong>✅ Верно! (+10 баллов)</strong><br>${nextQ.explanation}`;
+      } else {
+        btn.classList.add('wrong');
+        state.score -= 5;
+        fb.className = 'em-feedback show bad';
+        fb.innerHTML = `<strong>❌ Неверно! (-5 баллов)</strong><br>${nextQ.explanation}`;
+        Array.from(optBox.children).forEach((b, idx) => {
+          if (shuffled[idx].correct) b.classList.add('correct');
+        });
+      }
+      updateStats();
+      state.completedItems[nextQ.id] = true;
+      document.getElementById('by-next-btn').style.display = 'inline-flex';
+    };
+    optBox.appendChild(btn);
+  });
+}
+
+// Локация 6: Эко-квест (Drag & Drop + клик для мобильных)
+function renderEcoQuest() {
+  const pool = document.getElementById('eco-pool');
+  const zoneGood = document.getElementById('zone-good');
+  const zoneBad = document.getElementById('zone-bad');
+
+  pool.innerHTML = '';
+  zoneGood.innerHTML = '<div class="eco-zone-title" style="color:#1e8449;">🌿 Энергоэффективно (Бережём ресурсы)</div>';
+  zoneBad.innerHTML = '<div class="eco-zone-title" style="color:#922b21;">🔥 Энергозатратно (Тратим впустую)</div>';
+
+  const cards = shuffleArray(GAME_DATA.ecoquest.cards);
+  let remaining = 0;
+
+  cards.forEach(card => {
+    const placedSide = state.ecoPlaced[card.id];
+    if (!placedSide) {
+      remaining++;
+      const el = document.createElement('div');
+      el.className = 'eco-card' + (state.selectedEcoId === card.id ? ' selected' : '');
+      el.textContent = card.text;
+      el.draggable = true;
+      el.id = card.id;
+
+      el.ondragstart = (e) => {
+        e.dataTransfer.setData('text/plain', card.id);
+        state.selectedEcoId = card.id;
+      };
+
+      el.onclick = () => {
+        state.selectedEcoId = (state.selectedEcoId === card.id) ? null : card.id;
+        renderEcoQuest();
+      };
+
+      pool.appendChild(el);
+    } else {
+      const placedEl = document.createElement('div');
+      placedEl.className = 'eco-placed-item ' + (card.type === 'good' ? 'eco-placed-good' : 'eco-placed-bad');
+      placedEl.textContent = (card.type === 'good' ? '✅ ' : '⚠️ ') + card.text;
+      if (card.type === 'good') zoneGood.appendChild(placedEl);
+      else zoneBad.appendChild(placedEl);
+    }
+  });
+
+  if (remaining === 0) {
+    pool.innerHTML = `
+      <div style="text-align:center; width:100%;">
+        <strong>🎉 Отлично! Все тезисы распределены по своим местам!</strong><br><br>
+        <button class="em-btn em-btn-green" onclick="goToMap()">Вернуться к списку локаций</button>
+      </div>
+    `;
+  }
+}
+
+function allowDrop(e) {
+  e.preventDefault();
+  e.currentTarget.classList.add('drag-over');
+}
+
+function leaveDrop(e) {
+  e.currentTarget.classList.remove('drag-over');
+}
+
+function handleDrop(e, targetZone) {
+  e.preventDefault();
+  e.currentTarget.classList.remove('drag-over');
+  const cardId = e.dataTransfer.getData('text/plain') || state.selectedEcoId;
+  if (cardId) evaluateEcoCard(cardId, targetZone);
+}
+
+function handleZoneClick(targetZone) {
+  if (state.selectedEcoId) {
+    evaluateEcoCard(state.selectedEcoId, targetZone);
+  }
+}
+
+function evaluateEcoCard(cardId, targetZone) {
+  if (state.ecoPlaced[cardId]) return;
+  const card = GAME_DATA.ecoquest.cards.find(c => c.id === cardId);
+  if (!card) return;
+
+  const fb = document.getElementById('eco-feedback');
+  if (card.type === targetZone) {
+    state.score += 10;
+    fb.className = 'em-feedback show good';
+    fb.innerHTML = `<strong>✅ Верно! (+10 баллов)</strong> Карточка «${card.text}» отнесена в правильный раздел.`;
+  } else {
+    state.score -= 5;
+    fb.className = 'em-feedback show bad';
+    const rightName = card.type === 'good' ? '«Энергоэффективно»' : '«Энергозатратно»';
+    fb.innerHTML = `<strong>❌ Ошибка! (-5 баллов)</strong> На самом деле это относится к разделу ${rightName}. Мы перенесли карточку туда автоматически.`;
+  }
+
+  state.ecoPlaced[cardId] = card.type;
+  state.selectedEcoId = null;
+  updateStats();
+  renderEcoQuest();
+}
+
+// Универсальное модальное окно вопроса
+let currentOnSuccess = null;
+
+function openQuestionModal(questionText, options, explanation, onComplete) {
+  currentOnSuccess = onComplete;
+  document.getElementById('modal-question').textContent = questionText;
+  const optContainer = document.getElementById('modal-options');
+  const feedback = document.getElementById('modal-feedback');
+  const closeBtn = document.getElementById('modal-close-btn');
+
+  optContainer.innerHTML = '';
+  feedback.className = 'em-feedback';
+  feedback.innerHTML = '';
+  closeBtn.style.display = 'none';
+
+  const shuffled = shuffleArray(options);
+
+  shuffled.forEach(opt => {
+    const btn = document.createElement('button');
+    btn.className = 'em-opt-btn';
+    btn.textContent = opt.text;
+    btn.onclick = () => {
+      document.querySelectorAll('#modal-options .em-opt-btn').forEach(b => b.disabled = true);
+      if (opt.correct) {
+        btn.classList.add('correct');
+        state.score += 10;
+        feedback.className = 'em-feedback show good';
+        feedback.innerHTML = `<strong>✅ Отлично! (+10 баллов)</strong><br>${explanation}`;
+      } else {
+        btn.classList.add('wrong');
+        state.score -= 5;
+        feedback.className = 'em-feedback show bad';
+        feedback.innerHTML = `<strong>❌ Ошибка! (-5 баллов)</strong><br>${explanation}`;
+        Array.from(optContainer.children).forEach((b, idx) => {
+          if (shuffled[idx].correct) b.classList.add('correct');
+        });
+      }
+      updateStats();
+      closeBtn.style.display = 'inline-flex';
+    };
+    optContainer.appendChild(btn);
+  });
+
+  document.getElementById('modal-overlay').classList.add('active');
+}
+
+function closeModal() {
+  document.getElementById('modal-overlay').classList.remove('active');
+  if (currentOnSuccess) {
+    currentOnSuccess();
+    currentOnSuccess = null;
+  }
+}
+
+// Сертификат
+function showCertificate() {
+  document.getElementById('cert-player-name').textContent = state.playerName;
+  document.getElementById('cert-score').textContent = state.score;
+  
+  const today = new Date();
+  document.getElementById('cert-date').textContent = today.toLocaleDateString('ru-RU');
+
+  let rank = '';
+  if (state.score >= 250) rank = '🌟 Звание: Магистр энергосбережения СШ №5!';
+  else if (state.score >= 160) rank = '⚡ Звание: Знаток бережливости!';
+  else rank = '🌱 Звание: Юный защитник энергии!';
+  document.getElementById('cert-rank').textContent = rank;
+
+  showScreen('screen-cert');
+}
+
+function resetGame() {
+  state.score = 0;
+  state.completedItems = {};
+  state.ecoPlaced = {};
+  state.selectedEcoId = null;
+  updateStats();
+  showScreen('screen-welcome');
+}
+</script>
+</body>
+</html>
